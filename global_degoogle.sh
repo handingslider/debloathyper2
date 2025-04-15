@@ -60,17 +60,22 @@ display_menu() {
 
 # Initialize array to track apps to keep
 declare -A keep_apps
+max_attempts=3
+attempt=0
 
 # Get user input for apps to keep
-while true; do
+while [ $attempt -lt $max_attempts ]; do
     display_menu
     read -r input
-    # Exit loop if user enters 0
-    if [[ "$input" == "0" ]]; then
+    ((attempt++))
+
+    # Handle empty input or '0'
+    if [[ -z "$input" || "$input" == "0" ]]; then
+        echo "Proceeding with no apps kept."
         break
     fi
 
-    # Split input into array
+    # Split input into numbers
     read -ra numbers <<< "$input"
     valid=true
     for num in "${numbers[@]}"; do
@@ -91,10 +96,17 @@ while true; do
         read -r confirm
         if [[ "$confirm" =~ ^[Yy]$ ]]; then
             break
+        else
+            echo "Selection canceled. Try again."
+            unset keep_apps
+            declare -A keep_apps
         fi
-        # Clear keep_apps if user doesn't confirm
-        unset keep_apps
-        declare -A keep_apps
+    fi
+
+    # Exit on max attempts
+    if [ $attempt -eq $max_attempts ]; then
+        echo "Max input attempts reached. Proceeding with no apps kept."
+        break
     fi
 done
 

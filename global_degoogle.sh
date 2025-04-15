@@ -46,7 +46,7 @@ apps=(
     com.google.android.apps.docs
 )
 
-# Function to display menu
+# Function to display menu (only used in interactive mode)
 display_menu() {
     echo "Select apps to KEEP (not delete). Enter numbers separated by spaces (e.g., '1 3 5')."
     echo "Enter '0' or nothing to proceed with uninstalling all unselected apps."
@@ -61,35 +61,35 @@ display_menu() {
 # Initialize array to track apps to keep
 declare -A keep_apps
 
-# Get user input once
-display_menu
-read -r input
-echo "DEBUG: Input received: '$input'"
+# Check if running interactively (not piped)
+if [ -t 0 ]; then
+    echo "DEBUG: Running interactively"
+    display_menu
+    read -r input
+    echo "DEBUG: Input received: '$input'"
 
-# Handle input
-if [[ -z "$input" || "$input" == "0" ]]; then
-    echo "Proceeding with no apps kept."
-else
-    # Split input into numbers
-    read -ra numbers <<< "$input"
-    valid=true
-    for num in "${numbers[@]}"; do
-        if ! [[ "$num" =~ ^[0-9]+$ ]] || [ "$num" -lt 1 ] || [ "$num" -gt "${#apps[@]}" ]; then
-            echo "Invalid input: $num. Proceeding with no apps kept."
-            valid=false
-            break
-        fi
-    done
-
-    if [[ "$valid" == "true" ]]; then
-        for num in "${numbers[@]}"; do
-            index=$((num-1))
-            keep_apps[${apps[$index]}]=1
-            echo "${app_names[${apps[$index]}]} marked to keep."
-        done
-    else
+    if [[ -z "$input" || "$input" == "0" ]]; then
         echo "Proceeding with no apps kept."
+    else
+        read -ra numbers <<< "$input"
+        valid=true
+        for num in "${numbers[@]}"; do
+            if ! [[ "$num" =~ ^[0-9]+$ ]] || [ "$num" -lt 1 ] || [ "$num" -gt "${#apps[@]}" ]; then
+                echo "Invalid input: $num. Proceeding with no apps kept."
+                valid=false
+                break
+            fi
+        done
+        if [[ "$valid" == "true" ]]; then
+            for num in "${numbers[@]}"; do
+                index=$((num-1))
+                keep_apps[${apps[$index]}]=1
+                echo "${app_names[${apps[$index]}]} marked to keep."
+            done
+        fi
     fi
+else
+    echo "DEBUG: Running non-interactively (e.g., via curl). No apps kept."
 fi
 
 # Uninstall apps not marked to keep

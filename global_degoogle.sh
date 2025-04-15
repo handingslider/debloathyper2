@@ -1,13 +1,8 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
-# If not running interactively, download and re-execute interactively
+# Force interactive mode when piped
 if [ ! -t 0 ]; then
-    echo "Downloading script for interactive execution..."
-    TEMP_SCRIPT=$(mktemp /data/data/com.termux/files/home/degoogle.XXXXXX.sh)
-    curl -sSL https://raw.githubusercontent.com/your/repo/main/script.sh > "$TEMP_SCRIPT"
-    chmod +x "$TEMP_SCRIPT"
-    exec bash "$TEMP_SCRIPT"
-    rm -f "$TEMP_SCRIPT"
+    exec bash -c "curl -sSL https://raw.githubusercontent.com/your/repo/main/script.sh | bash -i"
     exit
 fi
 
@@ -17,7 +12,7 @@ echo "============================================="
 echo "         Android Debloater Tool"
 echo "============================================="
 
-# Fetch device info
+# Device info
 BUILD_VERSION=$(su -c "getprop ro.build.version.incremental" 2>/dev/null || echo "Unknown")
 ANDROID_VERSION=$(su -c "getprop ro.build.version.release" 2>/dev/null || echo "Unknown")
 echo "• Build Version: $BUILD_VERSION"
@@ -71,7 +66,7 @@ show_menu() {
     echo "============================================="
     echo
     echo "Enter space-separated numbers of apps to keep"
-    echo "Example: 1 3 5 (to keep YouTube Music, Google Photos, Facebook System)"
+    echo "Example: 1 3 5 (keeps YouTube Music, Google Photos, Facebook System)"
     echo
     echo " 0. Remove ALL apps (default)"
     echo "---------------------------------------------"
@@ -81,7 +76,6 @@ show_menu() {
     done
     
     echo "---------------------------------------------"
-    echo -n "Your selection: "
 }
 
 # Main logic
@@ -89,7 +83,11 @@ declare -A keep_apps
 
 while true; do
     show_menu
-    read -r -a selections
+    echo -n "Your selection: "
+    read -r input
+    
+    # Split input into array
+    IFS=' ' read -r -a selections <<< "$input"
     
     # If no input or 0, proceed with full removal
     if [[ ${#selections[@]} -eq 0 ]] || [[ "${selections[0]}" == "0" ]]; then
@@ -101,7 +99,7 @@ while true; do
     invalid=0
     for num in "${selections[@]}"; do
         if ! [[ "$num" =~ ^[0-9]+$ ]] || [ "$num" -lt 1 ] || [ "$num" -gt "${#apps[@]}" ]; then
-            echo "Invalid option: $num"
+            echo "! Invalid option: $num"
             invalid=1
         fi
     done
@@ -110,6 +108,7 @@ while true; do
         for num in "${selections[@]}"; do
             index=$((num-1))
             keep_apps[${apps[$index]}]=1
+            echo "+ Keeping: ${app_names[${apps[$index]}]}"
         done
         break
     else
@@ -125,22 +124,22 @@ echo "---------------------------------------------"
 
 for app in "${apps[@]}"; do
     if [[ -z "${keep_apps[$app]}" ]]; then
-        echo -n "Removing ${app_names[$app]}... "
+        echo -n "- Removing ${app_names[$app]}... "
         result=$(su -c "pm uninstall --user 0 $app" 2>&1)
         
         if [[ $result == *"Success"* ]]; then
-            echo "✓ Done"
+            echo "✓ Success"
         elif [[ $result == *"not installed"* ]]; then
             echo "✗ Not installed"
         else
             echo "✗ Failed ($result)"
         fi
     else
-        echo "Keeping: ${app_names[$app]}"
+        echo "✓ Keeping: ${app_names[$app]}"
     fi
 done
 
 echo "---------------------------------------------"
 echo "Operation completed!"
-echo "Note: Some changes may require a reboot to take effect"
+echo "Note: Some changes may require a reboot"
 echo "---------------------------------------------"

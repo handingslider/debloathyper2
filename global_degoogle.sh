@@ -1,5 +1,17 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
+# If piped, save to temp file and run locally
+if [ ! -t 0 ]; then
+    echo "DEBUG: Detected piped execution (e.g., curl). Saving to temp file."
+    TEMP_SCRIPT="/data/data/com.termux/files/home/global_degoogle_temp.sh"
+    cat > "$TEMP_SCRIPT"
+    chmod +x "$TEMP_SCRIPT"
+    echo "DEBUG: Executing $TEMP_SCRIPT locally"
+    bash "$TEMP_SCRIPT"
+    rm -f "$TEMP_SCRIPT"
+    exit
+fi
+
 # Fetch and Display Build and Android Version
 BUILD_VERSION=$(su -c "getprop ro.build.version.incremental" 2>/dev/null || echo "Unknown")
 ANDROID_VERSION=$(su -c "getprop ro.build.version.release" 2>/dev/null || echo "Unknown")
@@ -61,10 +73,10 @@ display_menu() {
 # Initialize array to track apps to keep
 declare -A keep_apps
 
-# Force interactive input using /dev/tty
+# Show menu and get input
 echo "DEBUG: Displaying menu"
 display_menu
-read -r input < /dev/tty
+read -r input
 echo "DEBUG: Input received: '$input'"
 
 # Process input

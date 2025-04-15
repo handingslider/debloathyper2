@@ -46,10 +46,10 @@ apps=(
     com.google.android.apps.docs
 )
 
-# Function to display menu (only used in interactive mode)
+# Function to display menu
 display_menu() {
     echo "Select apps to KEEP (not delete). Enter numbers separated by spaces (e.g., '1 3 5')."
-    echo "Enter '0' or nothing to proceed with uninstalling all unselected apps."
+    echo "Enter '0' or nothing to proceed with uninstalling all apps."
     echo "---------------------------------------------"
     for i in "${!apps[@]}"; do
         echo "$((i+1)). ${app_names[${apps[$i]}]}"
@@ -61,35 +61,32 @@ display_menu() {
 # Initialize array to track apps to keep
 declare -A keep_apps
 
-# Check if running interactively (not piped)
-if [ -t 0 ]; then
-    echo "DEBUG: Running interactively"
-    display_menu
-    read -r input
-    echo "DEBUG: Input received: '$input'"
+# Force interactive input using /dev/tty
+echo "DEBUG: Displaying menu"
+display_menu
+read -r input < /dev/tty
+echo "DEBUG: Input received: '$input'"
 
-    if [[ -z "$input" || "$input" == "0" ]]; then
-        echo "Proceeding with no apps kept."
-    else
-        read -ra numbers <<< "$input"
-        valid=true
-        for num in "${numbers[@]}"; do
-            if ! [[ "$num" =~ ^[0-9]+$ ]] || [ "$num" -lt 1 ] || [ "$num" -gt "${#apps[@]}" ]; then
-                echo "Invalid input: $num. Proceeding with no apps kept."
-                valid=false
-                break
-            fi
-        done
-        if [[ "$valid" == "true" ]]; then
-            for num in "${numbers[@]}"; do
-                index=$((num-1))
-                keep_apps[${apps[$index]}]=1
-                echo "${app_names[${apps[$index]}]} marked to keep."
-            done
-        fi
-    fi
+# Process input
+if [[ -z "$input" || "$input" == "0" ]]; then
+    echo "Proceeding with no apps kept."
 else
-    echo "DEBUG: Running non-interactively (e.g., via curl). No apps kept."
+    read -ra numbers <<< "$input"
+    valid=true
+    for num in "${numbers[@]}"; do
+        if ! [[ "$num" =~ ^[0-9]+$ ]] || [ "$num" -lt 1 ] || [ "$num" -gt "${#apps[@]}" ]; then
+            echo "Invalid input: $num. Proceeding with no apps kept."
+            valid=false
+            break
+        fi
+    done
+    if [[ "$valid" == "true" ]]; then
+        for num in "${numbers[@]}"; do
+            index=$((num-1))
+            keep_apps[${apps[$index]}]=1
+            echo "${app_names[${apps[$index]}]} marked to keep."
+        done
+    fi
 fi
 
 # Uninstall apps not marked to keep

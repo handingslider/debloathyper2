@@ -1,8 +1,15 @@
+
 #!/data/data/com.termux/files/usr/bin/bash
 
-# Ensure script is run with root privileges
-if [ "$(id -u)" != "0" ]; then
-    echo "This script must be run as root. Use 'su' first."
+# Fetch and Display Build and Android Version
+BUILD_VERSION=$(su -c "getprop ro.build.version.incremental" 2>/dev/null || echo "Unknown")
+ANDROID_VERSION=$(su -c "getprop ro.build.version.release" 2>/dev/null || echo "Unknown")
+echo "Build Version: $BUILD_VERSION"
+echo "Android Version: $ANDROID_VERSION"
+
+# Check for su availability
+if ! command -v su >/dev/null 2>&1; then
+    echo "Error: 'su' command not found. Device must be rooted."
     exit 1
 fi
 
@@ -97,7 +104,7 @@ done
 for app in "${apps[@]}"; do
     if [[ -z "${keep_apps[$app]}" ]]; then
         echo "Uninstalling ${app_names[$app]} ($app)..."
-        pm uninstall --user 0 "$app" 2>/dev/null
+        su -c "pm uninstall --user 0 $app" 2>/dev/null
         if [ $? -eq 0 ]; then
             echo "${app_names[$app]} uninstalled successfully."
         else

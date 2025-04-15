@@ -1,11 +1,12 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
-# If piped, save to temp file and run locally with terminal attached
+# If not running interactively, download and re-execute interactively
 if [ ! -t 0 ]; then
-    TEMP_SCRIPT=$(mktemp /data/data/com.termux/files/home/tmp.XXXXXXXXXX.sh)
-    cat > "$TEMP_SCRIPT"
+    echo "Downloading script for interactive execution..."
+    TEMP_SCRIPT=$(mktemp /data/data/com.termux/files/home/degoogle.XXXXXX.sh)
+    curl -sSL https://raw.githubusercontent.com/your/repo/main/script.sh > "$TEMP_SCRIPT"
     chmod +x "$TEMP_SCRIPT"
-    exec bash -i "$TEMP_SCRIPT"
+    exec bash "$TEMP_SCRIPT"
     rm -f "$TEMP_SCRIPT"
     exit
 fi
@@ -16,14 +17,14 @@ echo "============================================="
 echo "         Android Debloater Tool"
 echo "============================================="
 
-# Fetch and Display Build and Android Version
+# Fetch device info
 BUILD_VERSION=$(su -c "getprop ro.build.version.incremental" 2>/dev/null || echo "Unknown")
 ANDROID_VERSION=$(su -c "getprop ro.build.version.release" 2>/dev/null || echo "Unknown")
 echo "• Build Version: $BUILD_VERSION"
 echo "• Android Version: $ANDROID_VERSION"
 echo "---------------------------------------------"
 
-# Associative array mapping package names to friendly names
+# App database
 declare -A app_names=(
     ["com.google.android.apps.youtube.music"]="YouTube Music"
     ["com.google.android.youtube"]="YouTube"
@@ -43,7 +44,6 @@ declare -A app_names=(
     ["com.google.android.apps.docs"]="Google Docs"
 )
 
-# Array of package names
 apps=(
     com.google.android.apps.youtube.music
     com.google.android.youtube
@@ -63,74 +63,84 @@ apps=(
     com.google.android.apps.docs
 )
 
-# Function to display menu
-display_menu() {
-    echo "Select apps to KEEP (not uninstall). Enter numbers separated by spaces."
-    echo "Example: '1 3 5' will keep YouTube Music, Google Photos, and Facebook System"
+# Menu function
+show_menu() {
+    clear
+    echo "============================================="
+    echo "   Select Apps to KEEP (All others will be removed)"
+    echo "============================================="
+    echo
+    echo "Enter space-separated numbers of apps to keep"
+    echo "Example: 1 3 5 (to keep YouTube Music, Google Photos, Facebook System)"
+    echo
+    echo " 0. Remove ALL apps (default)"
     echo "---------------------------------------------"
+    
     for i in "${!apps[@]}"; do
         printf "%2d. %s\n" "$((i+1))" "${app_names[${apps[$i]}]}"
     done
-    echo "---------------------------------------------"
-    echo " 0. Uninstall ALL listed apps (default)"
+    
     echo "---------------------------------------------"
     echo -n "Your selection: "
 }
 
-# Initialize array to track apps to keep
+# Main logic
 declare -A keep_apps
 
-# Show menu and get input
-display_menu
-read -r -a selections
-
-# Process input
-if [[ ${#selections[@]} -eq 0 ]] || [[ "${selections[0]}" == "0" ]]; then
-    echo "Proceeding with uninstalling ALL apps."
-else
-    valid=true
+while true; do
+    show_menu
+    read -r -a selections
+    
+    # If no input or 0, proceed with full removal
+    if [[ ${#selections[@]} -eq 0 ]] || [[ "${selections[0]}" == "0" ]]; then
+        echo "Will remove ALL listed apps."
+        break
+    fi
+    
+    # Validate input
+    invalid=0
     for num in "${selections[@]}"; do
         if ! [[ "$num" =~ ^[0-9]+$ ]] || [ "$num" -lt 1 ] || [ "$num" -gt "${#apps[@]}" ]; then
-            echo "Invalid selection: $num. Please try again."
-            valid=false
-            break
+            echo "Invalid option: $num"
+            invalid=1
         fi
     done
     
-    if $valid; then
+    if [ $invalid -eq 0 ]; then
         for num in "${selections[@]}"; do
             index=$((num-1))
             keep_apps[${apps[$index]}]=1
-            echo "Keeping: ${app_names[${apps[$index]}]}"
         done
+        break
     else
-        echo "Invalid input detected. Proceeding with uninstalling ALL apps."
+        echo "Please enter valid numbers (1-${#apps[@]}) or 0 for all"
+        sleep 2
     fi
-fi
+done
 
-echo "---------------------------------------------"
-echo "Starting uninstallation process..."
+# Uninstallation process
+echo
+echo "Starting removal process..."
 echo "---------------------------------------------"
 
-# Uninstall apps not marked to keep
 for app in "${apps[@]}"; do
     if [[ -z "${keep_apps[$app]}" ]]; then
-        echo -n "Uninstalling ${app_names[$app]}... "
+        echo -n "Removing ${app_names[$app]}... "
         result=$(su -c "pm uninstall --user 0 $app" 2>&1)
         
         if [[ $result == *"Success"* ]]; then
-            echo "✓ Success"
+            echo "✓ Done"
         elif [[ $result == *"not installed"* ]]; then
             echo "✗ Not installed"
         else
             echo "✗ Failed ($result)"
         fi
     else
-        echo "Skipping: ${app_names[$app]} (kept by user)"
+        echo "Keeping: ${app_names[$app]}"
     fi
 done
 
 echo "---------------------------------------------"
-echo "Debloat process completed!"
-echo "You may need to restart your device for all changes to take effect."
+echo "Operation completed!"
+echo "Note: Some changes may require a reboot to take effect"
 echo "---------------------------------------------"

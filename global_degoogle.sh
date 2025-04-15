@@ -49,7 +49,7 @@ apps=(
 # Function to display menu
 display_menu() {
     echo "Select apps to KEEP (not delete). Enter numbers separated by spaces (e.g., '1 3 5')."
-    echo "Enter '0' to proceed with uninstalling all unselected apps."
+    echo "Enter '0' or nothing to proceed with uninstalling all unselected apps."
     echo "---------------------------------------------"
     for i in "${!apps[@]}"; do
         echo "$((i+1)). ${app_names[${apps[$i]}]}"
@@ -60,27 +60,22 @@ display_menu() {
 
 # Initialize array to track apps to keep
 declare -A keep_apps
-max_attempts=3
-attempt=0
 
-# Get user input for apps to keep
-while [ $attempt -lt $max_attempts ]; do
-    display_menu
-    read -r input
-    ((attempt++))
+# Get user input once
+display_menu
+read -r input
+echo "DEBUG: Input received: '$input'"
 
-    # Handle empty input or '0'
-    if [[ -z "$input" || "$input" == "0" ]]; then
-        echo "Proceeding with no apps kept."
-        break
-    fi
-
+# Handle input
+if [[ -z "$input" || "$input" == "0" ]]; then
+    echo "Proceeding with no apps kept."
+else
     # Split input into numbers
     read -ra numbers <<< "$input"
     valid=true
     for num in "${numbers[@]}"; do
         if ! [[ "$num" =~ ^[0-9]+$ ]] || [ "$num" -lt 1 ] || [ "$num" -gt "${#apps[@]}" ]; then
-            echo "Invalid input: $num. Please enter valid numbers or 0."
+            echo "Invalid input: $num. Proceeding with no apps kept."
             valid=false
             break
         fi
@@ -92,23 +87,10 @@ while [ $attempt -lt $max_attempts ]; do
             keep_apps[${apps[$index]}]=1
             echo "${app_names[${apps[$index]}]} marked to keep."
         done
-        echo "Proceed with uninstallation? (y/n)"
-        read -r confirm
-        if [[ "$confirm" =~ ^[Yy]$ ]]; then
-            break
-        else
-            echo "Selection canceled. Try again."
-            unset keep_apps
-            declare -A keep_apps
-        fi
+    else
+        echo "Proceeding with no apps kept."
     fi
-
-    # Exit on max attempts
-    if [ $attempt -eq $max_attempts ]; then
-        echo "Max input attempts reached. Proceeding with no apps kept."
-        break
-    fi
-done
+fi
 
 # Uninstall apps not marked to keep
 for app in "${apps[@]}"; do

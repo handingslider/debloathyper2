@@ -7,7 +7,6 @@ Then enter <code>curl -sSL https://raw.githubusercontent.com/handingslider/deblo
 And now your Xiaomi is debloated
 
 Second variant is just removing not necessar google packages in system(You just cant remove them) so you can use degoogle script inserting that
-<code>curl -sSL -o global_degoogle.sh
-https://raw.githubusercontent.com/handingslider/debloathyper2/refs/heads/main/global_degoogle.sh </code>
+curl -sSL -o global_degoogle.sh https://raw.githubusercontent.com/handingslider/debloathyper2/refs/heads/main/global_degoogle.sh </code>
 and enter
 <code>bash global_degoogle.sh</code>

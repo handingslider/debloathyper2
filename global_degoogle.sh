@@ -1,4 +1,3 @@
-
 #!/data/data/com.termux/files/usr/bin/bash
 
 # Fetch and Display Build and Android Version
@@ -6,12 +5,6 @@ BUILD_VERSION=$(su -c "getprop ro.build.version.incremental" 2>/dev/null || echo
 ANDROID_VERSION=$(su -c "getprop ro.build.version.release" 2>/dev/null || echo "Unknown")
 echo "Build Version: $BUILD_VERSION"
 echo "Android Version: $ANDROID_VERSION"
-
-# Check for su availability
-if ! command -v su >/dev/null 2>&1; then
-    echo "Error: 'su' command not found. Device must be rooted."
-    exit 1
-fi
 
 # Associative array mapping package names to friendly names
 declare -A app_names=(
@@ -53,7 +46,7 @@ apps=(
     com.google.android.apps.docs
 )
 
-# Function to display menu and get user selection
+# Function to display menu
 display_menu() {
     echo "Select apps to KEEP (not delete). Enter numbers separated by spaces (e.g., '1 3 5')."
     echo "Enter '0' to proceed with uninstalling all unselected apps."
@@ -72,22 +65,24 @@ declare -A keep_apps
 while true; do
     display_menu
     read -r input
+    # Exit loop if user enters 0
     if [[ "$input" == "0" ]]; then
         break
     fi
 
-    # Validate input
+    # Split input into array
+    read -ra numbers <<< "$input"
     valid=true
-    for num in $input; do
+    for num in "${numbers[@]}"; do
         if ! [[ "$num" =~ ^[0-9]+$ ]] || [ "$num" -lt 1 ] || [ "$num" -gt "${#apps[@]}" ]; then
-            echo "Invalid input: $num. Please enter valid numbers or 0 to proceed."
+            echo "Invalid input: $num. Please enter valid numbers or 0."
             valid=false
             break
         fi
     done
 
-    if $valid; then
-        for num in $input; do
+    if [[ "$valid" == "true" ]]; then
+        for num in "${numbers[@]}"; do
             index=$((num-1))
             keep_apps[${apps[$index]}]=1
             echo "${app_names[${apps[$index]}]} marked to keep."
@@ -97,6 +92,9 @@ while true; do
         if [[ "$confirm" =~ ^[Yy]$ ]]; then
             break
         fi
+        # Clear keep_apps if user doesn't confirm
+        unset keep_apps
+        declare -A keep_apps
     fi
 done
 

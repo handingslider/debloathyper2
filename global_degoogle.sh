@@ -2,8 +2,10 @@
 
 # Force interactive mode when piped
 if [ ! -t 0 ]; then
-    exec bash -i <(cat <<'SCRIPT_END'
-# The entire script content will follow after this
+    exec bash -c "curl -sSL https://raw.githubusercontent.com/handingslider/debloathyper2/refs/heads/main/global_degoogle.sh | bash -i"
+    exit
+fi
+
 # Main script starts here
 clear
 echo "============================================="
@@ -141,7 +143,3 @@ echo "---------------------------------------------"
 echo "Operation completed!"
 echo "Note: Some changes may require a reboot"
 echo "---------------------------------------------"
-SCRIPT_END
-)
-    exit
-fi

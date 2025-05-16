@@ -2,7 +2,7 @@
 
 # Force interactive mode when piped
 if [ ! -t 0 ]; then
-    exec bash -c "curl -sSL https://raw.githubusercontent.com/handingslider/debloathyper2/refs/heads/main/global_degoogle.sh | bash -i"
+    exec bash -c "curl -sSL https://raw.githubusercontent.com/your/repo/main/script.sh | bash -i"
     exit
 fi
 

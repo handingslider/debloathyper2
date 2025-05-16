@@ -9,4 +9,5 @@ And now your Xiaomi is debloated
 Second variant is just removing not necessar google packages in system(You just cant remove them) so you can use degoogle script inserting that
 <code>curl -sSL -o global_degoogle.sh https://raw.githubusercontent.com/handingslider/debloathyper2/refs/heads/main/global_degoogle.sh </code>
 and enter<br><code>chmod +x global_degoogle.sh</code>
-<code>bash global_degoogle.sh</code>
+<code>bash global_degoogle.sh</code><br>
+Congrats! now u debloated ur global from googles
